@@ -1,0 +1,15 @@
+{
+  "name": "daily-notes",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.6.0",
+  "scripts": {
+    "dev:api": "corepack pnpm --filter @daily-notes/app dev:api",
+    "dev:web": "corepack pnpm --filter @daily-notes/app dev:web",
+    "dev": "corepack pnpm --filter @daily-notes/app dev",
+    "build": "corepack pnpm --filter @daily-notes/db build && corepack pnpm --filter @daily-notes/app build",
+    "db:generate": "corepack pnpm --filter @daily-notes/db db:generate",
+    "db:migrate": "corepack pnpm --filter @daily-notes/db db:migrate",
+    "typecheck": "corepack pnpm -r typecheck"
+  }
+}

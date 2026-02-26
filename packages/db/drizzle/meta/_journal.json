@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1772141670841,
+      "tag": "0000_lyrical_warbound",
+      "breakpoints": true
+    }
+  ]
+}

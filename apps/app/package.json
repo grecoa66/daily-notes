@@ -1,0 +1,48 @@
+{
+  "name": "@daily-notes/app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "run-p dev:api dev:web",
+    "dev:api": "tsx watch src/server/index.ts",
+    "dev:web": "vite",
+    "build": "run-s build:web build:api",
+    "build:web": "vite build",
+    "build:api": "tsc -p tsconfig.server.json",
+    "start": "node dist/server/index.js",
+    "typecheck": "corepack pnpm --filter @daily-notes/db build && tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit"
+  },
+  "dependencies": {
+    "@auth/core": "^0.39.1",
+    "@auth/drizzle-adapter": "^1.8.0",
+    "@fastify/formbody": "^8.0.2",
+    "@daily-notes/db": "workspace:*",
+    "@fastify/static": "^8.2.0",
+    "@tanstack/react-query": "^5.66.8",
+    "@tanstack/react-router": "^1.114.12",
+    "clsx": "^2.1.1",
+    "cookie": "^1.0.2",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.39.3",
+    "fastify": "^5.2.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.0.2",
+    "temporal-polyfill": "^0.2.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "npm-run-all": "^4.1.5",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0"
+  }
+}
