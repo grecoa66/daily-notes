@@ -27,6 +27,7 @@ A daily note taking app that behaves like one long reverse-chronological sheet.
 - Fastify `/api/health` route is wired.
 - Auth.js OAuth scaffold is wired at `/api/auth/*` (GitHub + Google, DB sessions).
 - Session-aware endpoint is available at `/api/me`.
+- Username/password auth is available via `/api/auth/register` and `/api/auth/login`.
 - Notes APIs are wired (`/api/threads`, `/api/threads/:id/entries`, backfill, thread search).
 - Drizzle schema includes auth + thread + daily entry + attachment tables.
 - AI context docs are added in `docs/ai/` and `AGENTS.md`.
@@ -48,3 +49,9 @@ A daily note taking app that behaves like one long reverse-chronological sheet.
 - Google callback: `http://localhost:4004/api/auth/callback/google`
 
 Never commit real OAuth secrets to git. Keep them only in local `.env` and Railway variables.
+
+## Username/password auth API
+
+- `POST /api/auth/register` with `{ username, email, password, timezone? }`
+- `POST /api/auth/login` with `{ identifier, password }` where identifier is email or username
+- `POST /api/auth/logout`

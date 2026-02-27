@@ -16,9 +16,11 @@ import {
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name"),
+  username: varchar("username", { length: 50 }),
   email: text("email").notNull(),
   emailVerified: timestamp("email_verified", { withTimezone: true }),
   image: text("image"),
+  passwordHash: text("password_hash"),
   timezone: varchar("timezone", { length: 100 }).notNull().default("UTC"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -27,6 +29,7 @@ export const users = pgTable("users", {
     .$onUpdate(() => sql`now()`),
 }, (table) => ({
   emailUnique: uniqueIndex("users_email_unique").on(table.email),
+  usernameUnique: uniqueIndex("users_username_unique").on(table.username),
 }));
 
 export const accounts = pgTable(

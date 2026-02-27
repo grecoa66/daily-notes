@@ -40,7 +40,7 @@ const threadEntryParamsSchema = z.object({
 });
 
 const entriesQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(30),
+  limit: z.coerce.number().int().min(1).max(5000).default(2000),
   offset: z.coerce.number().int().min(0).default(0),
 });
 
