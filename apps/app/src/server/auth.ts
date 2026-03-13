@@ -1,5 +1,6 @@
 import { Auth } from "@auth/core";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import type { Provider } from "@auth/core/providers";
 import GitHub from "@auth/core/providers/github";
 import Google from "@auth/core/providers/google";
 import { eq } from "drizzle-orm";
@@ -14,8 +15,8 @@ import { accounts, sessions, users, verificationTokens } from "@daily-notes/db";
 import { getDb } from "./db.js";
 import { env } from "./env.js";
 
-function buildProviders() {
-  const providers = [];
+function buildProviders(): Provider[] {
+  const providers: Provider[] = [];
 
   if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
     providers.push(

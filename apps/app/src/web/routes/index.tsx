@@ -128,7 +128,7 @@ function RichEditor({ initialContent, autofocus, onContentChange }: RichEditorPr
   }, [editor, initialContent]);
 
   if (!editor) {
-    return <div className="text-xs text-zinc-500">Loading editor...</div>;
+    return <div className="text-xs text-muted-foreground">Loading editor...</div>;
   }
 
   const applyLink = () => {
@@ -149,12 +149,12 @@ function RichEditor({ initialContent, autofocus, onContentChange }: RichEditorPr
   };
 
   return (
-    <div className="rounded-md border border-zinc-300 bg-white/70">
-      <EditorContent editor={editor} className="min-h-28 px-3 py-2 text-sm text-zinc-800" />
+    <div className="rounded-md border border-border bg-card/80">
+      <EditorContent editor={editor} className="min-h-28 px-3 py-2 text-sm text-foreground" />
 
       {isFocused ? (
         <>
-          <div className="hidden items-center gap-1 border-t border-zinc-200 px-2 py-2 md:flex">
+          <div className="hidden items-center gap-1 border-t border-border px-2 py-2 md:flex">
             <ToolbarButton active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} label="B" />
             <ToolbarButton active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()} label="I" />
             <ToolbarButton active={editor.isActive("code")} onClick={() => editor.chain().focus().toggleCode().run()} label="Code" />
@@ -464,20 +464,20 @@ function HomePage() {
   });
 
   if (meQuery.isLoading) {
-    return <div className="text-sm text-zinc-600">Checking session...</div>;
+    return <div className="text-sm text-muted-foreground">Checking session...</div>;
   }
 
   if (!isAuthenticated) {
     return (
       <section className="space-y-4">
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">Daily Notes</h1>
-        <p className="text-sm text-zinc-600">Sign in with GitHub or use username/password.</p>
+        <h1 className="text-3xl font-semibold tracking-tight">Daily Notes</h1>
+        <p className="text-sm text-muted-foreground">Sign in with GitHub or use username/password.</p>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => window.location.assign(`${apiBase}/api/auth/signin/github`)}>Continue with GitHub</Button>
           <Button variant="outline" onClick={() => window.open(`${apiBase}/api/health`, "_blank")}>API Health</Button>
         </div>
 
-        <div className="max-w-md space-y-3 rounded-lg border border-zinc-200 bg-white p-4">
+        <div className="max-w-md space-y-3 rounded-lg border border-border bg-card p-4">
           <div className="flex gap-2">
             <Button variant={authMode === "login" ? "default" : "outline"} onClick={() => setAuthMode("login")}>
               Login
@@ -492,7 +492,7 @@ function HomePage() {
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               placeholder="Username"
-              className="h-9 w-full rounded-md border border-zinc-300 px-3 text-sm"
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
             />
           ) : null}
 
@@ -506,14 +506,14 @@ function HomePage() {
               }
             }}
             placeholder={authMode === "login" ? "Email or username" : "Email"}
-            className="h-9 w-full rounded-md border border-zinc-300 px-3 text-sm"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
           />
           <input
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Password"
-            className="h-9 w-full rounded-md border border-zinc-300 px-3 text-sm"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
           />
           <Button
             disabled={credentialAuthMutation.isPending}
@@ -530,7 +530,7 @@ function HomePage() {
           </Button>
         </div>
 
-        {statusMessage ? <p className="text-xs text-zinc-600">{statusMessage}</p> : null}
+        {statusMessage ? <p className="text-xs text-muted-foreground">{statusMessage}</p> : null}
       </section>
     );
   }
@@ -538,23 +538,23 @@ function HomePage() {
   return (
     <section className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">Thread Workspace</h1>
-        <p className="text-sm text-zinc-600">
-          Signed in as <span className="font-medium text-zinc-800">{meQuery.data.user.email}</span>
+        <h1 className="text-3xl font-semibold tracking-tight">Thread Workspace</h1>
+        <p className="text-sm text-muted-foreground">
+          Signed in as <span className="font-medium text-foreground">{meQuery.data.user.email}</span>
           {meQuery.data.user.username ? ` (${meQuery.data.user.username})` : ""}.
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[260px_1fr]">
-        <aside className="space-y-4 rounded-lg border border-zinc-200 bg-white p-4">
-          <h2 className="text-sm font-semibold text-zinc-900">Threads</h2>
+        <aside className="space-y-4 rounded-lg border border-border bg-card p-4">
+          <h2 className="text-sm font-semibold">Threads</h2>
 
           <div className="space-y-2">
             <input
               value={newThreadTitle}
               onChange={(event) => setNewThreadTitle(event.target.value)}
               placeholder="New thread title"
-              className="h-9 w-full rounded-md border border-zinc-300 px-3 text-sm"
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
             />
             <Button
               className="w-full"
@@ -575,8 +575,8 @@ function HomePage() {
                   onClick={() => setSelectedThreadId(thread.id)}
                   className={`w-full rounded-md border px-3 py-2 text-left text-sm transition ${
                     isSelected
-                      ? "border-zinc-900 bg-zinc-900 text-zinc-50"
-                      : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
                   }`}
                 >
                   {thread.title}
@@ -584,16 +584,16 @@ function HomePage() {
               );
             })}
 
-            {threads.length === 0 && <p className="text-xs text-zinc-500">No threads yet. Create one to start writing.</p>}
+            {threads.length === 0 && <p className="text-xs text-muted-foreground">No threads yet. Create one to start writing.</p>}
           </div>
 
-          <div className="space-y-2 border-t border-zinc-200 pt-3">
-            <p className="text-xs font-medium text-zinc-700">Backfill missed day</p>
+          <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-xs font-medium text-muted-foreground">Backfill missed day</p>
             <input
               type="date"
               value={backfillDate}
               onChange={(event) => setBackfillDate(event.target.value)}
-              className="h-9 w-full rounded-md border border-zinc-300 px-3 text-sm"
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
             />
             <Button
               className="w-full"
@@ -610,15 +610,15 @@ function HomePage() {
           </Button>
         </aside>
 
-        <div className="rounded-lg border border-zinc-200 bg-zinc-100/80 p-4">
+        <div className="rounded-lg border border-border bg-card/80 p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-900">Running Thread</h2>
-            {statusMessage ? <p className="text-xs text-zinc-600">{statusMessage}</p> : null}
+            <h2 className="text-sm font-semibold">Running Thread</h2>
+            {statusMessage ? <p className="text-xs text-muted-foreground">{statusMessage}</p> : null}
           </div>
 
-          {entriesQuery.isLoading ? <p className="text-xs text-zinc-500">Loading entries...</p> : null}
+          {entriesQuery.isLoading ? <p className="text-xs text-muted-foreground">Loading entries...</p> : null}
 
-          <div ref={listRef} className="h-[70vh] overflow-auto rounded-md border border-zinc-200 bg-zinc-50 px-4 py-4">
+          <div ref={listRef} className="h-[70vh] overflow-auto rounded-md border border-border bg-background px-4 py-4">
             <div
               style={{
                 height: `${rowVirtualizer.getTotalSize()}px`,
@@ -652,10 +652,10 @@ function HomePage() {
                     }}
                     className="pb-4"
                   >
-                    <article className="rounded-xl bg-zinc-200/70 px-5 py-5">
-                      <h3 className="text-3xl tracking-tight text-zinc-900">{formatDateHeading(entry.localDate)}</h3>
+                    <article className="rounded-xl border border-border bg-card/80 px-5 py-5">
+                      <h3 className="text-3xl tracking-tight">{formatDateHeading(entry.localDate)}</h3>
 
-                      <div className="mt-3 text-sm leading-6 text-zinc-800 [font-family:Georgia,serif]">
+                      <div className="mt-3 text-sm leading-6 text-foreground [font-family:Georgia,serif]">
                         {isActive ? (
                           <RichEditor
                             initialContent={activeContentJson}
@@ -675,7 +675,7 @@ function HomePage() {
                             className="w-full text-left"
                           >
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.contentMarkdown || entry.contentText || ""}</ReactMarkdown>
-                            <div className="mt-4 h-8 rounded-md border border-dashed border-zinc-400/40" />
+                            <div className="mt-4 h-8 rounded-md border border-dashed border-border/60" />
                           </button>
                         )}
                       </div>
@@ -687,7 +687,7 @@ function HomePage() {
           </div>
 
           {entries.length === 0 && !entriesQuery.isLoading ? (
-            <p className="mt-3 text-xs text-zinc-500">No entries yet. Opening a thread auto-creates today's entry.</p>
+            <p className="mt-3 text-xs text-muted-foreground">No entries yet. Opening a thread auto-creates today's entry.</p>
           ) : null}
         </div>
       </div>
