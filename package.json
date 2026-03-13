@@ -8,6 +8,7 @@
     "dev:web": "corepack pnpm --filter @daily-notes/app dev:web",
     "dev": "corepack pnpm --filter @daily-notes/app dev",
     "build": "corepack pnpm --filter @daily-notes/db build && corepack pnpm --filter @daily-notes/app build",
+    "start": "corepack pnpm --filter @daily-notes/app start",
     "db:generate": "corepack pnpm --filter @daily-notes/db db:generate",
     "db:migrate": "corepack pnpm --filter @daily-notes/db db:migrate",
     "typecheck": "corepack pnpm -r typecheck"
