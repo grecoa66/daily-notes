@@ -1,9 +1,11 @@
-export const blankDoc = {
+import type { JSONContent } from "@tiptap/react";
+
+export const blankDoc: JSONContent = {
   type: "doc",
   content: [{ type: "paragraph" }],
 };
 
-export function buildDocFromPlainText(value: string) {
+export function buildDocFromPlainText(value: string): JSONContent {
   if (!value.trim()) {
     return blankDoc;
   }

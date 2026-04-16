@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 import { blankDoc, buildDocFromPlainText } from "@/web/features/editor/document";
+import { RenderedNote } from "@/web/features/editor/rendered-note";
 import { RichEditor } from "@/web/features/editor/rich-editor";
 import { useThreads } from "@/web/features/threads/threads-context";
 import { formatDateHeading, todayLocalDate } from "@/web/lib/dates";
@@ -222,9 +221,10 @@ export function EntryList() {
                         onClick={() => activateEntry(entry)}
                         className="w-full text-left"
                       >
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {entry.contentMarkdown || entry.contentText || ""}
-                        </ReactMarkdown>
+                        <RenderedNote
+                          contentJson={entry.contentJson}
+                          fallbackText={entry.contentText}
+                        />
                       </button>
                     )}
                   </div>

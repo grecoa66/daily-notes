@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
-import Placeholder from "@tiptap/extension-placeholder";
 
+import { editorExtensions } from "./extensions";
 import { LinkEditorPopover } from "./link-popover";
 import {
   type LinkDraft,
@@ -30,16 +27,7 @@ export function RichEditor({
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [
-      StarterKit,
-      Link.configure({
-        openOnClick: false,
-      }),
-      Image,
-      Placeholder.configure({
-        placeholder: "Write your notes...",
-      }),
-    ],
+    extensions: editorExtensions,
     editorProps: {
       attributes: {
         class: "note-editor prose prose-sm max-w-none focus:outline-none",
