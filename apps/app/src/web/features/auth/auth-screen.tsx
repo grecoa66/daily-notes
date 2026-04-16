@@ -1,40 +1,39 @@
+import { useState } from "react";
+
 import { Button } from "@/web/components/ui/button";
 import { getApiBase, signInWithProvider } from "@/web/lib/api";
 
-type AuthMode = "login" | "register";
+import { useCredentialAuth, type AuthMode } from "./hooks";
 
-type AuthScreenProps = {
-  authMode: AuthMode;
-  onAuthModeChange: (mode: AuthMode) => void;
-  identifier: string;
-  onIdentifierChange: (value: string) => void;
-  email: string;
-  onEmailChange: (value: string) => void;
-  username: string;
-  onUsernameChange: (value: string) => void;
-  password: string;
-  onPasswordChange: (value: string) => void;
-  onSubmit: () => void;
-  isSubmitting: boolean;
-  statusMessage: string | null;
-};
+export function AuthScreen() {
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-export function AuthScreen({
-  authMode,
-  onAuthModeChange,
-  identifier,
-  onIdentifierChange,
-  email,
-  onEmailChange,
-  username,
-  onUsernameChange,
-  password,
-  onPasswordChange,
-  onSubmit,
-  isSubmitting,
-  statusMessage,
-}: AuthScreenProps) {
+  const credentialAuth = useCredentialAuth();
   const apiBase = getApiBase();
+
+  const submit = () => {
+    if (authMode === "login") {
+      credentialAuth.mutate({ mode: "login", identifier, password });
+      return;
+    }
+
+    credentialAuth.mutate({
+      mode: "register",
+      username,
+      email,
+      password,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+  };
+
+  const errorMessage =
+    credentialAuth.isError && credentialAuth.error instanceof Error
+      ? credentialAuth.error.message
+      : null;
 
   return (
     <section className="space-y-4">
@@ -58,13 +57,13 @@ export function AuthScreen({
         <div className="flex gap-2">
           <Button
             variant={authMode === "login" ? "default" : "outline"}
-            onClick={() => onAuthModeChange("login")}
+            onClick={() => setAuthMode("login")}
           >
             Login
           </Button>
           <Button
             variant={authMode === "register" ? "default" : "outline"}
-            onClick={() => onAuthModeChange("register")}
+            onClick={() => setAuthMode("register")}
           >
             Register
           </Button>
@@ -73,7 +72,7 @@ export function AuthScreen({
         {authMode === "register" ? (
           <input
             value={username}
-            onChange={(event) => onUsernameChange(event.target.value)}
+            onChange={(event) => setUsername(event.target.value)}
             placeholder="Username"
             className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
           />
@@ -83,9 +82,9 @@ export function AuthScreen({
           value={authMode === "login" ? identifier : email}
           onChange={(event) => {
             if (authMode === "login") {
-              onIdentifierChange(event.target.value);
+              setIdentifier(event.target.value);
             } else {
-              onEmailChange(event.target.value);
+              setEmail(event.target.value);
             }
           }}
           placeholder={authMode === "login" ? "Email or username" : "Email"}
@@ -94,16 +93,16 @@ export function AuthScreen({
         <input
           type="password"
           value={password}
-          onChange={(event) => onPasswordChange(event.target.value)}
+          onChange={(event) => setPassword(event.target.value)}
           placeholder="Password"
           className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
         />
         <Button
-          disabled={isSubmitting}
-          onClick={onSubmit}
+          disabled={credentialAuth.isPending}
+          onClick={submit}
           className="w-full"
         >
-          {isSubmitting
+          {credentialAuth.isPending
             ? authMode === "login"
               ? "Logging in..."
               : "Creating account..."
@@ -111,13 +110,11 @@ export function AuthScreen({
               ? "Login"
               : "Create Account"}
         </Button>
-      </div>
 
-      {statusMessage ? (
-        <p className="text-xs text-muted-foreground">{statusMessage}</p>
-      ) : null}
+        {errorMessage ? (
+          <p className="text-xs text-destructive">{errorMessage}</p>
+        ) : null}
+      </div>
     </section>
   );
 }
-
-export type { AuthMode };

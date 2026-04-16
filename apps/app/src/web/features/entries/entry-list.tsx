@@ -1,33 +1,152 @@
-import { useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { blankDoc, buildDocFromPlainText } from "@/web/features/editor/document";
 import { RichEditor } from "@/web/features/editor/rich-editor";
-import { buildDocFromPlainText } from "@/web/features/editor/document";
-import { formatDateHeading } from "@/web/lib/dates";
+import { useThreads } from "@/web/features/threads/threads-context";
+import { formatDateHeading, todayLocalDate } from "@/web/lib/dates";
+import { fingerprint } from "@/web/lib/fingerprint";
 
+import { useActiveEntry } from "./active-entry-context";
+import {
+  useCreateTodayEntry,
+  useEntriesQuery,
+  useSaveEntry,
+} from "./hooks";
 import type { DailyEntry } from "./types";
 
-type EntryListProps = {
-  entries: DailyEntry[];
-  isLoading: boolean;
-  activeEntryId: string | null;
-  activeContentJson: unknown;
-  statusMessage: string | null;
-  onActivateEntry: (entry: DailyEntry) => void;
-  onActiveContentChange: (entry: DailyEntry, contentJson: unknown) => void;
-};
+const AUTOSAVE_DEBOUNCE_MS = 1200;
 
-export function EntryList({
-  entries,
-  isLoading,
-  activeEntryId,
-  activeContentJson,
-  statusMessage,
-  onActivateEntry,
-  onActiveContentChange,
-}: EntryListProps) {
+export function EntryList() {
+  const { selectedThreadId, selectedThread } = useThreads();
+  const { activeEntryId, setActiveEntryId } = useActiveEntry();
+
+  const entriesQuery = useEntriesQuery(selectedThreadId, {
+    enabled: Boolean(selectedThreadId),
+  });
+  const entries = entriesQuery.data?.entries ?? [];
+
+  const [activeContentJson, setActiveContentJson] = useState<unknown>(blankDoc);
+  const [lastSavedByEntryId, setLastSavedByEntryId] = useState<Record<string, string>>({});
+
+  const saveEntry = useSaveEntry();
+  const createTodayEntry = useCreateTodayEntry();
+
+  const activeEntry = useMemo(
+    () => entries.find((entry) => entry.id === activeEntryId) ?? null,
+    [entries, activeEntryId],
+  );
+
+  useEffect(() => {
+    const map: Record<string, string> = {};
+    for (const entry of entries) {
+      map[entry.id] = fingerprint(entry.contentJson);
+    }
+    setLastSavedByEntryId(map);
+  }, [entries]);
+
+  useEffect(() => {
+    if (!activeEntry) {
+      return;
+    }
+    setActiveContentJson(activeEntry.contentJson ?? blankDoc);
+  }, [activeEntry]);
+
+  useEffect(() => {
+    if (!selectedThreadId || entriesQuery.isLoading || createTodayEntry.isPending) {
+      return;
+    }
+
+    const today = todayLocalDate();
+    const todayEntry = entries.find((entry) => entry.localDate === today);
+
+    if (!todayEntry) {
+      createTodayEntry.mutate(
+        { threadId: selectedThreadId, localDate: today, contentJson: blankDoc },
+        {
+          onSuccess: (payload) => {
+            setActiveEntryId(payload.entry.id);
+            setActiveContentJson(payload.entry.contentJson ?? blankDoc);
+          },
+        },
+      );
+      return;
+    }
+
+    if (!activeEntryId) {
+      setActiveEntryId(todayEntry.id);
+    }
+  }, [
+    selectedThreadId,
+    entries,
+    entriesQuery.isLoading,
+    activeEntryId,
+    createTodayEntry,
+    setActiveEntryId,
+  ]);
+
+  const saveEntryMutate = saveEntry.mutate;
+  useEffect(() => {
+    if (!selectedThreadId || !activeEntry) {
+      return;
+    }
+
+    const nextFingerprint = fingerprint(activeContentJson);
+    const lastSaved = lastSavedByEntryId[activeEntry.id];
+
+    if (nextFingerprint === lastSaved) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      saveEntryMutate(
+        {
+          threadId: selectedThreadId,
+          localDate: activeEntry.localDate,
+          contentJson: activeContentJson,
+        },
+        {
+          onSuccess: (payload) => {
+            setLastSavedByEntryId((previous) => ({
+              ...previous,
+              [payload.entry.id]: fingerprint(payload.entry.contentJson),
+            }));
+          },
+        },
+      );
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [
+    activeContentJson,
+    activeEntry,
+    selectedThreadId,
+    saveEntryMutate,
+    lastSavedByEntryId,
+  ]);
+
+  const statusMessage = useMemo(() => {
+    if (saveEntry.isError && saveEntry.error instanceof Error) {
+      return saveEntry.error.message;
+    }
+    if (saveEntry.isPending) {
+      return "Saving...";
+    }
+    if (saveEntry.isSuccess && saveEntry.data) {
+      return `Saved ${saveEntry.data.entry.localDate}`;
+    }
+    return null;
+  }, [saveEntry.isError, saveEntry.error, saveEntry.isPending, saveEntry.isSuccess, saveEntry.data]);
+
+  const activateEntry = (entry: DailyEntry) => {
+    setActiveEntryId(entry.id);
+    setActiveContentJson(entry.contentJson ?? buildDocFromPlainText(entry.contentText ?? ""));
+  };
+
   const listRef = useRef<HTMLDivElement | null>(null);
   const rowVirtualizer = useVirtualizer({
     count: entries.length,
@@ -39,20 +158,19 @@ export function EntryList({
   return (
     <div className="rounded-lg border border-border bg-card/80 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Running Thread</h2>
+        <h2 className="text-sm font-semibold">
+          {selectedThread?.title ?? "No thread selected"}
+        </h2>
         {statusMessage ? (
           <p className="text-xs text-muted-foreground">{statusMessage}</p>
         ) : null}
       </div>
 
-      {isLoading ? (
+      {entriesQuery.isLoading ? (
         <p className="text-xs text-muted-foreground">Loading entries...</p>
       ) : null}
 
-      <div
-        ref={listRef}
-        className="h-[70vh] overflow-auto px-4 py-4"
-      >
+      <div ref={listRef} className="h-[70vh] overflow-auto px-4 py-4">
         <div
           style={{
             height: `${rowVirtualizer.getTotalSize()}px`,
@@ -96,20 +214,17 @@ export function EntryList({
                       <RichEditor
                         initialContent={activeContentJson}
                         autofocus
-                        onContentChange={(nextContent) =>
-                          onActiveContentChange(entry, nextContent)
-                        }
+                        onContentChange={(nextContent) => setActiveContentJson(nextContent)}
                       />
                     ) : (
                       <button
                         type="button"
-                        onClick={() => onActivateEntry(entry)}
+                        onClick={() => activateEntry(entry)}
                         className="w-full text-left"
                       >
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {entry.contentMarkdown || entry.contentText || ""}
                         </ReactMarkdown>
-                        
                       </button>
                     )}
                   </div>
@@ -120,7 +235,7 @@ export function EntryList({
         </div>
       </div>
 
-      {entries.length === 0 && !isLoading ? (
+      {entries.length === 0 && !entriesQuery.isLoading ? (
         <p className="mt-3 text-xs text-muted-foreground">
           No entries yet. Opening a thread auto-creates today's entry.
         </p>
@@ -128,6 +243,3 @@ export function EntryList({
     </div>
   );
 }
-
-// Re-export so consumers building default content can use the same helper.
-export { buildDocFromPlainText };
