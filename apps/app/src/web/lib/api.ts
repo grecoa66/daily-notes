@@ -14,6 +14,51 @@ export function getApiBase(): string {
   return API_BASE;
 }
 
+type ZodFieldErrors = Record<string, string[] | undefined>;
+type ZodErrorShape = { formErrors: string[]; fieldErrors: ZodFieldErrors };
+
+function isZodErrorShape(value: unknown): value is ZodErrorShape {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "fieldErrors" in value &&
+    typeof (value as { fieldErrors: unknown }).fieldErrors === "object"
+  );
+}
+
+function flattenZodErrors(shape: ZodErrorShape): string {
+  const lines: string[] = [...shape.formErrors];
+  for (const [field, messages] of Object.entries(shape.fieldErrors)) {
+    for (const msg of messages ?? []) {
+      lines.push(`${field}: ${msg}`);
+    }
+  }
+  return lines.join(" · ") || "Validation failed";
+}
+
+function parseApiError(errorText: string, status: number): string {
+  if (!errorText) {
+    return `Request failed with status ${status}`;
+  }
+  try {
+    const parsed: unknown = JSON.parse(errorText);
+    if (typeof parsed !== "object" || parsed === null) {
+      return errorText;
+    }
+    const body = parsed as Record<string, unknown>;
+    const msg = body.message;
+    if (typeof msg === "string") {
+      return msg;
+    }
+    if (isZodErrorShape(msg)) {
+      return flattenZodErrors(msg);
+    }
+    return errorText;
+  } catch {
+    return errorText;
+  }
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const hasBody = init?.body !== undefined && init.body !== null;
   const baseHeaders: Record<string, string> = hasBody
@@ -31,7 +76,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || `Request failed with status ${response.status}`);
+    throw new Error(parseApiError(errorText, response.status));
   }
 
   if (response.status === 204) {

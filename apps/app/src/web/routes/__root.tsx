@@ -10,14 +10,14 @@ function RootLayout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border/80 bg-card/80 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border bg-card/90 shadow-sm backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Link to="/" className="text-sm font-semibold tracking-tight">
               Daily Notes
             </Link>
             <span className="hidden text-xs text-muted-foreground sm:inline">
-              TanStack + Fastify + Railway
+              by Alex Greco
             </span>
           </div>
 

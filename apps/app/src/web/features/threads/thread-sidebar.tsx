@@ -1,6 +1,8 @@
 import { useState } from "react";
 
 import { Button } from "@/web/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/web/components/ui/card";
+import { Input } from "@/web/components/ui/input";
 import { useLogout } from "@/web/features/auth/hooks";
 import { blankDoc } from "@/web/features/editor/document";
 import { useActiveEntry } from "@/web/features/entries/active-entry-context";
@@ -31,10 +33,7 @@ export function ThreadSidebar() {
 
   const handleCreateThread = () => {
     const title = newThreadTitle.trim();
-    if (!title) {
-      return;
-    }
-
+    if (!title) return;
     createThread.mutate(title, {
       onSuccess: (payload) => {
         setNewThreadTitle("");
@@ -44,16 +43,9 @@ export function ThreadSidebar() {
   };
 
   const handleBackfill = () => {
-    if (!selectedThreadId || !backfillDate) {
-      return;
-    }
-
+    if (!selectedThreadId || !backfillDate) return;
     backfillEntry.mutate(
-      {
-        threadId: selectedThreadId,
-        localDate: backfillDate,
-        contentJson: blankDoc,
-      },
+      { threadId: selectedThreadId, localDate: backfillDate, contentJson: blankDoc },
       {
         onSuccess: (payload) => {
           setBackfillDate("");
@@ -64,78 +56,91 @@ export function ThreadSidebar() {
   };
 
   return (
-    <aside className="space-y-4 rounded-lg border border-border bg-card p-4">
-      <h2 className="text-sm font-semibold">Threads</h2>
+    <Card className="flex flex-col">
+      <CardHeader>
+        <CardTitle className="text-sm uppercase tracking-widest text-muted-foreground">
+          Threads
+        </CardTitle>
+      </CardHeader>
 
-      <div className="space-y-2">
-        <input
-          value={newThreadTitle}
-          onChange={(event) => setNewThreadTitle(event.target.value)}
-          placeholder="New thread title"
-          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-        />
-        <Button
-          className="w-full"
-          disabled={createThread.isPending || !newThreadTitle.trim()}
-          onClick={handleCreateThread}
-        >
-          {createThread.isPending ? "Creating..." : "Create Thread"}
+      <CardContent className="flex flex-col gap-4">
+        {/* Thread list */}
+        <div className="flex flex-col gap-1">
+          {threads.map((thread) => {
+            const isSelected = thread.id === selectedThreadId;
+            return (
+              <button
+                key={thread.id}
+                type="button"
+                onClick={() => selectThread(thread.id)}
+                className={[
+                  "w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                ].join(" ")}
+              >
+                {thread.title}
+              </button>
+            );
+          })}
+
+          {threads.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No threads yet. Create one to start writing.
+            </p>
+          ) : null}
+        </div>
+
+        {/* New thread */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <p className="text-xs font-medium text-muted-foreground">New thread</p>
+          <Input
+            value={newThreadTitle}
+            onChange={(event) => setNewThreadTitle(event.target.value)}
+            onKeyDown={(event) => { if (event.key === "Enter") handleCreateThread(); }}
+            placeholder="Thread title"
+          />
+          <Button
+            className="w-full"
+            disabled={createThread.isPending || !newThreadTitle.trim()}
+            onClick={handleCreateThread}
+          >
+            {createThread.isPending ? "Creating..." : "Create Thread"}
+          </Button>
+          {createThreadError ? (
+            <p className="text-xs text-destructive">{createThreadError}</p>
+          ) : null}
+        </div>
+
+        {/* Backfill */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <p className="text-xs font-medium text-muted-foreground">Backfill missed day</p>
+          <input
+            type="date"
+            value={backfillDate}
+            onChange={(event) => setBackfillDate(event.target.value)}
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+          />
+          <Button
+            className="w-full"
+            variant="outline"
+            disabled={!selectedThreadId || backfillEntry.isPending || !backfillDate}
+            onClick={handleBackfill}
+          >
+            {backfillEntry.isPending ? "Adding..." : "Add Missed Day"}
+          </Button>
+          {backfillError ? (
+            <p className="text-xs text-destructive">{backfillError}</p>
+          ) : null}
+        </div>
+      </CardContent>
+
+      <CardFooter className="mt-auto">
+        <Button className="w-full" variant="outline" onClick={() => logout.mutate()}>
+          {logout.isPending ? "Signing out..." : "Sign Out"}
         </Button>
-        {createThreadError ? (
-          <p className="text-xs text-destructive">{createThreadError}</p>
-        ) : null}
-      </div>
-
-      <div className="space-y-2">
-        {threads.map((thread) => {
-          const isSelected = thread.id === selectedThreadId;
-          return (
-            <button
-              key={thread.id}
-              type="button"
-              onClick={() => selectThread(thread.id)}
-              className={`w-full rounded-md border px-3 py-2 text-left text-sm transition ${
-                isSelected
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              {thread.title}
-            </button>
-          );
-        })}
-
-        {threads.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            No threads yet. Create one to start writing.
-          </p>
-        ) : null}
-      </div>
-
-      <div className="space-y-2 border-t border-border pt-3">
-        <p className="text-xs font-medium text-muted-foreground">Backfill missed day</p>
-        <input
-          type="date"
-          value={backfillDate}
-          onChange={(event) => setBackfillDate(event.target.value)}
-          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-        />
-        <Button
-          className="w-full"
-          variant="outline"
-          disabled={!selectedThreadId || backfillEntry.isPending || !backfillDate}
-          onClick={handleBackfill}
-        >
-          {backfillEntry.isPending ? "Adding..." : "Add Missed Day"}
-        </Button>
-        {backfillError ? (
-          <p className="text-xs text-destructive">{backfillError}</p>
-        ) : null}
-      </div>
-
-      <Button className="w-full" variant="outline" onClick={() => logout.mutate()}>
-        {logout.isPending ? "Signing out..." : "Sign Out"}
-      </Button>
-    </aside>
+      </CardFooter>
+    </Card>
   );
 }

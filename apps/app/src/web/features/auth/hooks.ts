@@ -37,6 +37,28 @@ export function useLogout() {
   });
 }
 
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (identifier: string) => {
+      return apiFetch<{ message: string }>("/api/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ identifier }),
+      });
+    },
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: async (input: { token: string; password: string }) => {
+      return apiFetch<{ message: string }>("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+    },
+  });
+}
+
 export function useCredentialAuth() {
   const queryClient = useQueryClient();
 

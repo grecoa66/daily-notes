@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
+import { Card, CardContent, CardHeader, CardTitle } from "@/web/components/ui/card";
 import { blankDoc, buildDocFromPlainText } from "@/web/features/editor/document";
 import { RenderedNote } from "@/web/features/editor/rendered-note";
 import { RichEditor } from "@/web/features/editor/rich-editor";
@@ -155,91 +156,97 @@ export function EntryList() {
   });
 
   return (
-    <div className="rounded-lg border border-border bg-card/80 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">
+    <Card className="flex flex-col">
+      <CardHeader className="flex-row items-center justify-between pb-2">
+        <CardTitle className="text-2xl tracking-tight">
           {selectedThread?.title ?? "No thread selected"}
-        </h2>
+        </CardTitle>
         {statusMessage ? (
           <p className="text-xs text-muted-foreground">{statusMessage}</p>
         ) : null}
-      </div>
+      </CardHeader>
 
-      {entriesQuery.isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading entries...</p>
-      ) : null}
+      <CardContent className="flex-1 pt-0">
+        {entriesQuery.isLoading ? (
+          <p className="text-xs text-muted-foreground">Loading entries...</p>
+        ) : null}
 
-      <div ref={listRef} className="h-[70vh] overflow-auto px-4 py-4">
-        <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const entry = entries[virtualRow.index];
-            if (!entry) {
-              return null;
-            }
+        <div ref={listRef} className="h-[70vh] overflow-auto py-2">
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const entry = entries[virtualRow.index];
+              if (!entry) {
+                return null;
+              }
 
-            const isActive = entry.id === activeEntryId;
+              const isActive = entry.id === activeEntryId;
 
-            return (
-              <div
-                key={entry.id}
-                ref={(element) => {
-                  if (element) {
-                    rowVirtualizer.measureElement(element);
-                  }
-                }}
-                data-index={virtualRow.index}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-                className="pb-4"
-              >
-                <article className="rounded-xl border border-border bg-card/80 px-5 py-5">
-                  <h3 className="text-3xl tracking-tight">
-                    {formatDateHeading(entry.localDate)}
-                  </h3>
-
-                  <div className="mt-3 text-sm leading-6 text-foreground">
-                    {isActive ? (
-                      <RichEditor
-                        initialContent={activeContentJson}
-                        autofocus
-                        onContentChange={(nextContent) => setActiveContentJson(nextContent)}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => activateEntry(entry)}
-                        className="w-full text-left"
-                      >
-                        <RenderedNote
-                          contentJson={entry.contentJson}
-                          fallbackText={entry.contentText}
+              return (
+                <div
+                  key={entry.id}
+                  ref={(element) => {
+                    if (element) {
+                      rowVirtualizer.measureElement(element);
+                    }
+                  }}
+                  data-index={virtualRow.index}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                  className="pb-4"
+                >
+                  <Card className={[
+                    "transition-shadow",
+                    isActive ? "shadow-lg ring-1 ring-border" : "shadow-sm hover:shadow-md",
+                  ].join(" ")}>
+                    <CardHeader className="pb-2">
+                      <h3 className="text-3xl font-light tracking-tight text-foreground">
+                        {formatDateHeading(entry.localDate)}
+                      </h3>
+                    </CardHeader>
+                    <CardContent className="pt-0 text-sm leading-6 text-foreground">
+                      {isActive ? (
+                        <RichEditor
+                          initialContent={activeContentJson}
+                          autofocus
+                          onContentChange={(nextContent) => setActiveContentJson(nextContent)}
                         />
-                      </button>
-                    )}
-                  </div>
-                </article>
-              </div>
-            );
-          })}
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => activateEntry(entry)}
+                          className="w-full text-left"
+                        >
+                          <RenderedNote
+                            contentJson={entry.contentJson}
+                            fallbackText={entry.contentText}
+                          />
+                        </button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {entries.length === 0 && !entriesQuery.isLoading ? (
-        <p className="mt-3 text-xs text-muted-foreground">
-          No entries yet. Opening a thread auto-creates today's entry.
-        </p>
-      ) : null}
-    </div>
+        {entries.length === 0 && !entriesQuery.isLoading ? (
+          <p className="mt-3 text-xs text-muted-foreground">
+            No entries yet. Opening a thread auto-creates today's entry.
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }

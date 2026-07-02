@@ -6,11 +6,12 @@ import Google from "@auth/core/providers/google";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import bcrypt from "bcryptjs";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { parse as parseCookie, serialize as serializeCookie } from "cookie";
 import { z } from "zod";
 
-import { accounts, sessions, users, verificationTokens } from "@daily-notes/db";
+import { accounts, passwordResetTokens, sessions, users, verificationTokens } from "@daily-notes/db";
+import { buildPasswordResetEmail, sendMail } from "./email.js";
 
 import { getDb } from "./db.js";
 import { env } from "./env.js";
@@ -44,9 +45,9 @@ function buildProviders(): Provider[] {
 const credentialsSchema = z.object({
   username: z
     .string()
-    .min(3)
+    .min(6, "Username must be at least 6 characters")
     .max(50)
-    .regex(/^[a-zA-Z0-9_-]+$/),
+    .regex(/^[a-zA-Z0-9_-]+$/, "Username may only contain letters, numbers, - and _"),
   email: z.string().email(),
   password: z.string().min(8).max(200),
   timezone: z.string().min(1).max(100).optional(),
@@ -232,6 +233,47 @@ function createAuthHandler() {
   };
 }
 
+const RESET_TOKEN_EXPIRY_MS = 30 * 60 * 1000;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const RATE_LIMIT_MAX = 5;
+
+type RateLimitEntry = { count: number; resetAt: number };
+const forgotPasswordRateLimit = new Map<string, RateLimitEntry>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = forgotPasswordRateLimit.get(ip);
+  if (!entry || now > entry.resetAt) {
+    forgotPasswordRateLimit.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+  entry.count += 1;
+  return true;
+}
+
+function hashToken(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
+function getAppUrl(request: FastifyRequest): string {
+  if (env.APP_URL) {
+    return env.APP_URL.replace(/\/$/, "");
+  }
+  return getRequestOrigin(request);
+}
+
+const forgotPasswordSchema = z.object({
+  identifier: z.string().min(1).max(200),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8).max(200),
+});
+
 export function registerAuthRoutes(app: FastifyInstance): void {
   const authHandler = createAuthHandler();
 
@@ -315,6 +357,82 @@ export function registerAuthRoutes(app: FastifyInstance): void {
         timezone: user.timezone,
       },
     };
+  });
+
+  app.post("/api/auth/forgot-password", async (request, reply) => {
+    const ip = request.ip;
+    if (!checkRateLimit(ip)) {
+      return reply.code(429).send({ message: "Too many requests. Please wait a few minutes." });
+    }
+
+    const parsed = forgotPasswordSchema.safeParse(request.body);
+    if (!parsed.success) {
+      // Return success to avoid enumeration
+      return reply.send({ message: "If that account exists, a reset link has been sent." });
+    }
+
+    const identifier = parsed.data.identifier.trim().toLowerCase();
+    const db = getDb();
+
+    const user = await db.query.users.findFirst({
+      where: (usersTable, { or, eq: eqOp }) =>
+        or(eqOp(usersTable.email, identifier), eqOp(usersTable.username, identifier)),
+    });
+
+    // Always return the same message to prevent user enumeration
+    const genericResponse = { message: "If that account exists, a reset link has been sent." };
+
+    if (!user || !user.passwordHash) {
+      return reply.send(genericResponse);
+    }
+
+    // Delete any existing tokens for this user
+    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, user.id));
+
+    const rawToken = randomBytes(32).toString("base64url");
+    const tokenHash = hashToken(rawToken);
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
+
+    await db.insert(passwordResetTokens).values({ userId: user.id, tokenHash, expiresAt });
+
+    const resetUrl = `${getAppUrl(request)}/reset-password?token=${rawToken}`;
+    const emailContent = buildPasswordResetEmail(resetUrl);
+
+    await sendMail({ to: user.email, ...emailContent });
+
+    return reply.send(genericResponse);
+  });
+
+  app.post("/api/auth/reset-password", async (request, reply) => {
+    const parsed = resetPasswordSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ message: parsed.error.flatten() });
+    }
+
+    const tokenHash = hashToken(parsed.data.token);
+    const db = getDb();
+    const now = new Date();
+
+    const resetToken = await db.query.passwordResetTokens.findFirst({
+      where: (table, { and: andOp, eq: eqOp, gt: gtOp }) =>
+        andOp(eqOp(table.tokenHash, tokenHash), gtOp(table.expiresAt, now)),
+    });
+
+    if (!resetToken) {
+      return reply.code(400).send({ message: "This reset link is invalid or has expired." });
+    }
+
+    const newHash = await bcrypt.hash(parsed.data.password, 12);
+
+    await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, resetToken.userId));
+
+    // Invalidate all active sessions for this user
+    await db.delete(sessions).where(eq(sessions.userId, resetToken.userId));
+
+    // Consume the token
+    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.id, resetToken.id));
+
+    return reply.send({ message: "Password updated. You can now sign in with your new password." });
   });
 
   app.post("/api/auth/logout", async (request, reply) => {

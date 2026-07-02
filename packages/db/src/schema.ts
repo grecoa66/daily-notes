@@ -165,6 +165,23 @@ export const dailyEntriesRelations = relations(dailyEntries, ({ one, many }) => 
   attachments: many(attachments),
 }));
 
+export const passwordResetTokens = pgTable(
+  "password_reset_tokens",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex("password_reset_tokens_hash_unique").on(table.tokenHash),
+    userIdIdx: index("password_reset_tokens_user_id_idx").on(table.userId),
+  }),
+);
+
 export const attachmentsRelations = relations(attachments, ({ one }) => ({
   user: one(users, {
     fields: [attachments.userId],
